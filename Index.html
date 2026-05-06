@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <title>OCEAN REALMS · LIVING WORLD</title>
     <style>
         * {
@@ -12,15 +12,12 @@
             user-select: none;
             -webkit-tap-highlight-color: transparent;
         }
-
         body {
             background: #010a1a;
             overflow: hidden;
-            font-family: 'Courier New', 'Monaco', monospace;
-            touch-action: none; /* prevents pull-to-refresh */
+            font-family: 'Courier New', monospace;
+            touch-action: none;
         }
-
-        /* Canvas fullscreen */
         canvas {
             display: block;
             position: fixed;
@@ -28,16 +25,13 @@
             left: 0;
             width: 100%;
             height: 100%;
-            object-fit: cover;
             cursor: crosshair;
         }
-
-        /* HUD overlay */
         .stats-panel {
             position: fixed;
             top: 12px;
             left: 12px;
-            background: rgba(0, 0, 0, 0.65);
+            background: rgba(0,0,0,0.7);
             backdrop-filter: blur(8px);
             border-radius: 20px;
             padding: 8px 14px;
@@ -48,77 +42,56 @@
             border-left: 3px solid #0ff;
             pointer-events: none;
             font-family: monospace;
-            letter-spacing: 1px;
-            text-shadow: 0 0 5px cyan;
         }
-
-        .stats-panel div {
-            margin: 3px 0;
-        }
-
+        .stats-panel div { margin: 3px 0; }
         .shop-panel {
             position: fixed;
             bottom: 20px;
             right: 20px;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0,0,0,0.85);
             backdrop-filter: blur(12px);
-            border-radius: 28px;
-            padding: 12px 18px;
+            border-radius: 40px;
+            padding: 12px 20px;
             color: gold;
             z-index: 20;
-            text-align: center;
-            border: 1px solid #ffcc44;
-            pointer-events: auto;
-            font-size: 14px;
+            border: 1px solid gold;
             font-weight: bold;
             cursor: pointer;
-            transition: 0.1s linear;
             font-family: monospace;
         }
-
-        .shop-panel:active {
-            transform: scale(0.96);
-            background: #ffaa33;
-            color: black;
-        }
-
+        .shop-panel:active { transform: scale(0.96); background: gold; color: black; }
         .event-toast {
             position: fixed;
             top: 30%;
             left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.85);
+            transform: translate(-50%,-50%);
+            background: black;
             backdrop-filter: blur(16px);
-            color: gold;
-            padding: 12px 24px;
-            border-radius: 60px;
-            font-size: 18px;
+            color: cyan;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-size: 16px;
             font-weight: bold;
-            white-space: nowrap;
             z-index: 100;
-            border: 2px solid cyan;
-            font-family: monospace;
+            border: 1px solid cyan;
             pointer-events: none;
             animation: fadeUp 2s ease-out forwards;
+            white-space: nowrap;
         }
-
         @keyframes fadeUp {
-            0% { opacity: 1; transform: translate(-50%, -50%) scale(0.9); }
-            80% { opacity: 1; }
-            100% { opacity: 0; transform: translate(-50%, -80%) scale(1.1); }
+            0% { opacity: 1; transform: translate(-50%,-50%) scale(0.9); }
+            100% { opacity: 0; transform: translate(-50%,-80%) scale(1.1); }
         }
-
         .instruction {
             position: fixed;
             bottom: 20px;
             left: 20px;
             background: rgba(0,0,0,0.5);
             border-radius: 20px;
-            padding: 6px 12px;
+            padding: 5px 10px;
             font-size: 10px;
             color: #aaa;
             pointer-events: none;
-            z-index: 10;
         }
     </style>
 </head>
@@ -128,99 +101,70 @@
     <div>🐟 SIZE: <span id="sizeVal">BABY</span></div>
     <div>💰 COINS: <span id="coinVal">0</span></div>
     <div>⚔️ KILLS: <span id="killVal">0</span></div>
-    <div>⭐ COMPANIONS: <span id="compVal">0</span></div>
+    <div>🐙 COMPANIONS: <span id="compVal">0</span></div>
     <div>❤️ HEALTH: <span id="healthVal">100</span>%</div>
-    <div>⏱️ AGE: <span id="ageVal">0</span> sec</div>
+    <div>⏱️ AGE: <span id="ageVal">0</span>s</div>
 </div>
-<div class="shop-panel" id="shopBtn">🛒 SHOP (100💰) 🐙</div>
-<div class="instruction">👇 TAP anywhere → fish swims there | 👆 TAP enemies to KILL</div>
+<div class="shop-panel" id="shopBtn">🛒 SHOP (100💰)</div>
+<div class="instruction">👇 TAP to move | 👆 TAP enemy to KILL</div>
 
 <script>
     (function(){
-        // ---------- CANVAS SETUP ----------
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         let width, height;
-        
-        // ---------- WORLD PARAMS ----------
-        const WORLD_SIZE = 4000;  // large map
+        const WORLD_SIZE = 4000;
         let camera = { x: 0, y: 0 };
         
-        // ---------- PLAYER (AUTONOMOUS FISH) ----------
         let fish = {
-            x: WORLD_SIZE/2,
-            y: WORLD_SIZE/2,
-            vx: 0,
-            vy: 0,
-            size: 12,       // baby size
+            x: WORLD_SIZE/2, y: WORLD_SIZE/2,
+            vx: 0, vy: 0,
+            size: 12,
             maxSize: 48,
-            age: 0,         // seconds
+            age: 0,
             health: 100,
             maxHealth: 100,
             color: "#7bc5ae",
-            coins: 0,
+            coins: 5,
             kills: 0,
-            companions: []   // each companion = { type, x, y, ability }
+            companions: []
         };
         
-        // companion shop: list of buyable creatures
-        let shopUnlocked = false;
-        
-        // ---------- WORLD OBJECTS ----------
         let coins = [];
         let enemies = [];
-        let events = [];
         let particles = [];
-        
-        // timers
-        let lastTimestamp = 0;
-        let lastSpawnTime = 0;
-        let lastEventTime = 0;
+        let targetX = null, targetY = null;
+        let wanderAngle = Math.random() * Math.PI * 2;
+        let lastSpawn = 0, lastEvent = 0, lastFrame = 0;
         let ageCounter = 0;
         
-        // target for tap movement
-        let targetX = null, targetY = null;
-        
-        // autonomous "wander" force
-        let wanderAngle = Math.random() * Math.PI * 2;
-        
-        // ---------- HELPER FUNCTIONS ----------
-        function resizeCanvas() {
+        function resize() {
             width = window.innerWidth;
             height = window.innerHeight;
             canvas.width = width;
             canvas.height = height;
         }
         
-        // update camera to center on fish
         function updateCamera() {
             camera.x = fish.x - width/2;
             camera.y = fish.y - height/2;
-            // clamp to world bounds
             camera.x = Math.min(Math.max(camera.x, 0), WORLD_SIZE - width);
             camera.y = Math.min(Math.max(camera.y, 0), WORLD_SIZE - height);
         }
         
-        // convert world to screen
         function worldToScreen(wx, wy) {
             return { x: wx - camera.x, y: wy - camera.y };
         }
         
-        // spawn coins around world
         function spawnCoin(count=1) {
             for(let i=0;i<count;i++) {
-                coins.push({
-                    x: Math.random() * WORLD_SIZE,
-                    y: Math.random() * WORLD_SIZE,
-                    value: 1,
-                    radius: 8
-                });
+                coins.push({ x: Math.random() * WORLD_SIZE, y: Math.random() * WORLD_SIZE, value: 1, radius: 8 });
             }
         }
         
-        function spawnEnemy(aroundFish=false) {
-            let x,y;
-            if(aroundFish && Math.random()<0.7) {
+        function spawnEnemy(nearFish=false) {
+            let x, y;
+            if(nearFish && Math.random()<0.6) {
                 let angle = Math.random() * Math.PI * 2;
                 let dist = 150 + Math.random() * 200;
                 x = fish.x + Math.cos(angle)*dist;
@@ -229,32 +173,12 @@
                 x = Math.random() * WORLD_SIZE;
                 y = Math.random() * WORLD_SIZE;
             }
-            x = Math.min(Math.max(x, 20), WORLD_SIZE-20);
-            y = Math.min(Math.max(y, 20), WORLD_SIZE-20);
+            x = Math.min(Math.max(x,20), WORLD_SIZE-20);
+            y = Math.min(Math.max(y,20), WORLD_SIZE-20);
             enemies.push({
-                x, y,
-                radius: 14,
-                health: 12,
-                damage: 4,
-                speed: 28,
-                vx: (Math.random() - 0.5)*40,
-                vy: (Math.random() - 0.5)*40
+                x, y, radius: 14, health: 12, damage: 4, speed: 28,
+                vx: (Math.random()-0.5)*40, vy: (Math.random()-0.5)*40
             });
-        }
-        
-        // random world event
-        function triggerRandomEvent() {
-            const eventsList = [
-                { name: "🌊 MIGRATION WAVE", effect: ()=>{ spawnCoin(8); showToast("🌊 MIGRATION WAVE +8 COINS"); } },
-                { name: "🐋 WHALE SONG", effect: ()=>{ fish.health = Math.min(fish.maxHealth, fish.health+15); showToast("🐋 WHALE SONG +15 HEALTH"); } },
-                { name: "💀 SHARK PARTY", effect: ()=>{ for(let i=0;i<3;i++) spawnEnemy(true); showToast("💀 SHARK PARTY! 3 enemies"); } },
-                { name: "✨ GOLDEN TIDE", effect: ()=>{ fish.coins += 15; showToast("✨ GOLDEN TIDE +15 COINS"); } },
-                { name: "🌀 MAELSTROM", effect: ()=>{ fish.health = Math.max(1, fish.health-8); showToast("🌀 MAELSTROM -8 HEALTH"); } }
-            ];
-            let ev = eventsList[Math.floor(Math.random() * eventsList.length)];
-            ev.effect();
-            // extra particle burst
-            for(let i=0;i<20;i++) particles.push({ x: fish.x, y: fish.y, life: 0.8, vx: (Math.random()-0.5)*60, vy: (Math.random()-0.5)*60 });
         }
         
         function showToast(msg) {
@@ -262,263 +186,219 @@
             div.className = 'event-toast';
             div.innerText = msg;
             document.body.appendChild(div);
-            setTimeout(()=> div.remove(), 2000);
+            setTimeout(()=>div.remove(), 2000);
         }
         
-        // update fish stats UI
+        function randomEvent() {
+            let events = [
+                () => { spawnCoin(8); showToast("🌊 MIGRATION WAVE +8 COINS"); },
+                () => { fish.health = Math.min(fish.maxHealth, fish.health+15); showToast("🐋 WHALE SONG +15 HEALTH"); },
+                () => { for(let i=0;i<3;i++) spawnEnemy(true); showToast("💀 SHARK PARTY! 3 enemies"); },
+                () => { fish.coins += 15; showToast("✨ GOLDEN TIDE +15 COINS"); },
+                () => { fish.health = Math.max(1, fish.health-8); showToast("🌀 MAELSTROM -8 HEALTH"); }
+            ];
+            let e = events[Math.floor(Math.random()*events.length)];
+            e();
+            for(let i=0;i<15;i++) particles.push({ x: fish.x, y: fish.y, life: 0.8, vx: (Math.random()-0.5)*60, vy: (Math.random()-0.5)*60 });
+        }
+        
         function updateUI() {
-            let sizeLabel = "BABY";
-            if(fish.size > 35) sizeLabel = "LEVIATHAN";
-            else if(fish.size > 25) sizeLabel = "ADULT";
-            else if(fish.size > 18) sizeLabel = "GROWING";
+            let sizeLabel = fish.size > 35 ? "LEVIATHAN" : fish.size > 25 ? "ADULT" : fish.size > 18 ? "GROWING" : "BABY";
             document.getElementById('sizeVal').innerText = sizeLabel;
             document.getElementById('coinVal').innerText = Math.floor(fish.coins);
             document.getElementById('killVal').innerText = fish.kills;
             document.getElementById('compVal').innerText = fish.companions.length;
-            document.getElementById('healthVal').innerText = Math.max(0,Math.floor(fish.health));
+            document.getElementById('healthVal').innerText = Math.max(0, Math.floor(fish.health));
             document.getElementById('ageVal').innerText = Math.floor(ageCounter);
-            
-            // color change at 50 coins
-            if(fish.coins >= 50 && fish.color === "#7bc5ae") {
-                fish.color = "#ffaa66";
-                showToast("🌈 FISH CHANGED COLOR! (50 coins)");
-            }
-            if(fish.coins >= 150 && fish.color === "#ffaa66") {
-                fish.color = "#ff66cc";
-                showToast("✨ LEGENDARY COLOR UNLOCKED!");
-            }
+            if(fish.coins >= 50 && fish.color === "#7bc5ae") { fish.color = "#ffaa66"; showToast("🌈 FISH CHANGED COLOR! (50 coins)"); }
+            if(fish.coins >= 150 && fish.color === "#ffaa66") { fish.color = "#ff66cc"; showToast("✨ LEGENDARY COLOR!"); }
         }
         
-        // companion shop
         function openShop() {
             if(fish.coins >= 100) {
                 fish.coins -= 100;
-                let newComp = { type: "🐙 OCTO-GUARD", x: fish.x, y: fish.y, ability: "protect" };
-                fish.companions.push(newComp);
+                fish.companions.push({ type: "🐙", x: fish.x, y: fish.y });
                 updateUI();
                 showToast("🐙 OCTO-GUARD joins! Fights enemies");
-            } else {
-                showToast("Need 100 coins!");
-            }
+            } else { showToast("Need 100 coins!"); }
         }
         
-        // update autonomous movement + growth
-        function updateGame(deltaSec) {
-            if(deltaSec > 0.05) deltaSec = 0.05;
-            // age & growth
-            ageCounter += deltaSec;
-            let growthRate = 0.4 * deltaSec; // grows over time
-            if(fish.size < fish.maxSize) fish.size = Math.min(fish.maxSize, fish.size + growthRate);
+        function updateGame(delta) {
+            if(delta > 0.05) delta = 0.05;
+            ageCounter += delta;
+            if(fish.size < fish.maxSize) fish.size = Math.min(fish.maxSize, fish.size + 0.35 * delta);
+            if(targetX === null && Math.random() < 0.02 * delta) fish.health -= 0.4 * delta;
+            if(targetX !== null) fish.health = Math.min(fish.maxHealth, fish.health + 3 * delta);
+            if(fish.health <= 0) fish.health = 15;
             
-            // health decay only if no user interaction? but gentle: only if no move for 30 sec? simpler: if no target + low activity? make it decay very slow when idle
-            if(targetX === null && Math.random() < 0.02 * deltaSec) {
-                fish.health -= 0.35 * deltaSec;
-                if(fish.health < 0) fish.health = 5;
-            }
-            // health regen when moving
-            if(targetX !== null) fish.health = Math.min(fish.maxHealth, fish.health + 3*deltaSec);
-            
-            // autonomous movement (wander + seek random coins nearby)
-            let nearestCoin = null;
-            let minDist = Infinity;
+            let nearestCoin = null, minDist = Infinity;
             for(let c of coins) {
-                let dx = c.x - fish.x, dy = c.y - fish.y;
-                let dist = Math.hypot(dx,dy);
-                if(dist < minDist && dist < 170) {
-                    minDist = dist;
-                    nearestCoin = c;
-                }
+                let d = Math.hypot(c.x - fish.x, c.y - fish.y);
+                if(d < minDist && d < 170) { minDist = d; nearestCoin = c; }
             }
             if(nearestCoin) {
-                let angle = Math.atan2(nearestCoin.y - fish.y, nearestCoin.x - fish.x);
-                fish.vx += Math.cos(angle) * 90 * deltaSec;
-                fish.vy += Math.sin(angle) * 90 * deltaSec;
+                let ang = Math.atan2(nearestCoin.y - fish.y, nearestCoin.x - fish.x);
+                fish.vx += Math.cos(ang) * 90 * delta;
+                fish.vy += Math.sin(ang) * 90 * delta;
             } else {
-                wanderAngle += (Math.random() - 0.5) * 2.5 * deltaSec;
-                fish.vx += Math.cos(wanderAngle) * 45 * deltaSec;
-                fish.vy += Math.sin(wanderAngle) * 45 * deltaSec;
+                wanderAngle += (Math.random()-0.5) * 2.5 * delta;
+                fish.vx += Math.cos(wanderAngle) * 45 * delta;
+                fish.vy += Math.sin(wanderAngle) * 45 * delta;
             }
-            
-            // target movement (tap)
             if(targetX !== null) {
                 let dx = targetX - fish.x, dy = targetY - fish.y;
-                let dist = Math.hypot(dx,dy);
-                if(dist < 12) {
-                    targetX = null;
-                    targetY = null;
-                } else {
-                    let angle = Math.atan2(dy,dx);
-                    fish.vx += Math.cos(angle) * 380 * deltaSec;
-                    fish.vy += Math.sin(angle) * 380 * deltaSec;
+                if(Math.hypot(dx,dy) < 15) { targetX = null; targetY = null; }
+                else {
+                    let ang = Math.atan2(dy,dx);
+                    fish.vx += Math.cos(ang) * 380 * delta;
+                    fish.vy += Math.sin(ang) * 380 * delta;
                 }
             }
-            
-            // apply damping
-            fish.vx *= (1 - 4*deltaSec);
-            fish.vy *= (1 - 4*deltaSec);
-            let maxSpeed = 280;
-            if(Math.hypot(fish.vx, fish.vy) > maxSpeed) {
-                let angle = Math.atan2(fish.vy, fish.vx);
-                fish.vx = Math.cos(angle)*maxSpeed;
-                fish.vy = Math.sin(angle)*maxSpeed;
-            }
-            fish.x += fish.vx * deltaSec;
-            fish.y += fish.vy * deltaSec;
+            fish.vx *= (1 - 4*delta);
+            fish.vy *= (1 - 4*delta);
+            let spd = Math.hypot(fish.vx, fish.vy);
+            if(spd > 280) { fish.vx = (fish.vx/spd)*280; fish.vy = (fish.vy/spd)*280; }
+            fish.x += fish.vx * delta;
+            fish.y += fish.vy * delta;
             fish.x = Math.min(Math.max(fish.x, 15), WORLD_SIZE-15);
             fish.y = Math.min(Math.max(fish.y, 15), WORLD_SIZE-15);
             
-            // COLLECT COINS
             for(let i=0;i<coins.length;i++) {
                 let c = coins[i];
                 if(Math.hypot(fish.x - c.x, fish.y - c.y) < fish.size/2 + 8) {
                     fish.coins += c.value;
-                    coins.splice(i,1);
-                    i--;
+                    coins.splice(i,1); i--;
                     updateUI();
                     for(let p=0;p<5;p++) particles.push({ x: c.x, y: c.y, life: 0.5, vx: (Math.random()-0.5)*40, vy: (Math.random()-0.5)*40 });
                 }
             }
-            
-            // ENEMY logic + fish combat (auto + tap-to-kill handled in canvas click)
             for(let i=0;i<enemies.length;i++) {
                 let e = enemies[i];
-                let dx = e.x - fish.x, dy = e.y - fish.y;
-                let distToFish = Math.hypot(dx,dy);
-                if(distToFish < fish.size/2 + e.radius) {
-                    // fish attacks back automatically
+                if(Math.hypot(e.x - fish.x, e.y - fish.y) < fish.size/2 + e.radius) {
                     e.health -= 8 + (fish.size/8);
-                    if(e.health <=0) {
-                        fish.kills++;
-                        fish.coins += 3;
-                        enemies.splice(i,1);
-                        i--;
-                        updateUI();
-                        showToast("💀 ENEMY DEFEATED +3 coins");
+                    if(e.health <= 0) {
+                        fish.kills++; fish.coins += 3;
+                        enemies.splice(i,1); i--;
+                        updateUI(); showToast("💀 ENEMY DEFEATED +3 coins");
                         continue;
                     }
-                    let damage = e.damage * (0.8);
-                    fish.health -= damage;
-                    if(fish.health <=0) fish.health = 15; // never dies fully, just low health!
-                    // knockback
-                    let angle = Math.atan2(dy,dx);
-                    fish.vx += Math.cos(angle)*60;
-                    fish.vy += Math.sin(angle)*60;
+                    fish.health -= e.damage * 0.7;
+                    let ang = Math.atan2(e.y - fish.y, e.x - fish.x);
+                    fish.vx += Math.cos(ang)*50; fish.vy += Math.sin(ang)*50;
                 }
-                // enemy movement toward fish
-                let angleTo = Math.atan2(fish.y - e.y, fish.x - e.x);
-                e.vx += Math.cos(angleTo) * 35 * deltaSec;
-                e.vy += Math.sin(angleTo) * 35 * deltaSec;
-                e.x += e.vx * deltaSec;
-                e.y += e.vy * deltaSec;
-                e.x = Math.min(Math.max(e.x, 10), WORLD_SIZE-10);
-                e.y = Math.min(Math.max(e.y, 10), WORLD_SIZE-10);
-                e.vx *= 0.98;
-                e.vy *= 0.98;
+                let angTo = Math.atan2(fish.y - e.y, fish.x - e.x);
+                e.vx += Math.cos(angTo) * 35 * delta;
+                e.vy += Math.sin(angTo) * 35 * delta;
+                e.x += e.vx * delta; e.y += e.vy * delta;
+                e.x = Math.min(Math.max(e.x,10), WORLD_SIZE-10);
+                e.y = Math.min(Math.max(e.y,10), WORLD_SIZE-10);
+                e.vx *= 0.98; e.vy *= 0.98;
             }
-            
-            // companions protect: they attack enemies
             for(let comp of fish.companions) {
                 for(let i=0;i<enemies.length;i++) {
                     let e = enemies[i];
-                    let dx = e.x - comp.x, dy = e.y - comp.y;
-                    if(Math.hypot(dx,dy) < 45) {
+                    if(Math.hypot(e.x - comp.x, e.y - comp.y) < 45) {
                         e.health -= 7;
-                        if(e.health <=0) {
-                            fish.kills++;
-                            fish.coins += 3;
-                            enemies.splice(i,1);
+                        if(e.health <= 0) {
+                            fish.kills++; fish.coins += 3;
+                            enemies.splice(i,1); i--;
                             updateUI();
-                            i--;
                         }
                     }
                 }
-                comp.x = fish.x + Math.sin(Date.now() * 0.003 + fish.companions.indexOf(comp)*2) * 38;
-                comp.y = fish.y + Math.cos(Date.now() * 0.0035 + fish.companions.indexOf(comp)*2) * 38;
+                let idx = fish.companions.indexOf(comp);
+                comp.x = fish.x + Math.sin(Date.now()*0.004 + idx*2) * 38;
+                comp.y = fish.y + Math.cos(Date.now()*0.0045 + idx*2) * 38;
             }
-            
-            // spawn coins + enemies
-            lastSpawnTime += deltaSec;
-            if(lastSpawnTime > 3.5) {
-                lastSpawnTime = 0;
-                spawnCoin(2);
-                if(enemies.length < 5) spawnEnemy(true);
-            }
-            // random events
-            lastEventTime += deltaSec;
-            if(lastEventTime > 27) {
-                lastEventTime = 0;
-                triggerRandomEvent();
-            }
-            // particles life
+            lastSpawn += delta;
+            if(lastSpawn > 3) { lastSpawn = 0; spawnCoin(2); if(enemies.length < 5) spawnEnemy(true); }
+            lastEvent += delta;
+            if(lastEvent > 26) { lastEvent = 0; randomEvent(); }
             for(let i=0;i<particles.length;i++) {
-                particles[i].life -= deltaSec;
-                particles[i].x += particles[i].vx * deltaSec;
-                particles[i].y += particles[i].vy * deltaSec;
-                if(particles[i].life <=0) particles.splice(i,1), i--;
+                particles[i].life -= delta;
+                particles[i].x += particles[i].vx * delta;
+                particles[i].y += particles[i].vy * delta;
+                if(particles[i].life <= 0) particles.splice(i,1), i--;
             }
         }
         
-        // DRAW EVERYTHING
         function draw() {
-            if(!ctx) return;
             ctx.clearRect(0,0,width,height);
-            // ocean gradient
             let grad = ctx.createLinearGradient(0,0,0,height);
-            grad.addColorStop(0,"#021a2b");
-            grad.addColorStop(1,"#002133");
-            ctx.fillStyle = grad;
-            ctx.fillRect(0,0,width,height);
-            
-            // draw coins
+            grad.addColorStop(0,"#021a2b"); grad.addColorStop(1,"#002133");
+            ctx.fillStyle = grad; ctx.fillRect(0,0,width,height);
             for(let c of coins) {
-                let scr = worldToScreen(c.x, c.y);
-                if(scr.x > -50 && scr.x < width+50 && scr.y > -50 && scr.y < height+50) {
-                    ctx.beginPath();
-                    ctx.arc(scr.x, scr.y, 8, 0, Math.PI*2);
-                    ctx.fillStyle = "#ffcc44";
-                    ctx.shadowBlur = 15;
-                    ctx.fill();
-                    ctx.fillStyle = "#ffaa22";
-                    ctx.font = "bold 14px monospace";
-                    ctx.fillText("💰", scr.x-6, scr.y+5);
+                let s = worldToScreen(c.x, c.y);
+                if(s.x > -50 && s.x < width+50) {
+                    ctx.beginPath(); ctx.arc(s.x, s.y, 8, 0, Math.PI*2);
+                    ctx.fillStyle = "#ffcc44"; ctx.shadowBlur = 12; ctx.fill();
+                    ctx.fillStyle = "#aa8822"; ctx.font = "bold 14px monospace"; ctx.fillText("💰", s.x-6, s.y+5);
                 }
             }
-            // enemies
             for(let e of enemies) {
-                let scr = worldToScreen(e.x, e.y);
-                if(scr.x > -50 && scr.x < width+50) {
-                    ctx.beginPath();
-                    ctx.arc(scr.x, scr.y, e.radius, 0, Math.PI*2);
-                    ctx.fillStyle = "#aa3355";
-                    ctx.fill();
-                    ctx.fillStyle = "white";
-                    ctx.fillText("👾", scr.x-8, scr.y+6);
+                let s = worldToScreen(e.x, e.y);
+                if(s.x > -50 && s.x < width+50) {
+                    ctx.beginPath(); ctx.arc(s.x, s.y, e.radius, 0, Math.PI*2);
+                    ctx.fillStyle = "#aa3355"; ctx.fill();
+                    ctx.fillStyle = "white"; ctx.fillText("👾", s.x-8, s.y+6);
                 }
             }
-            // companions
             for(let comp of fish.companions) {
-                let scr = worldToScreen(comp.x, comp.y);
-                ctx.fillStyle = "#ff77aa";
-                ctx.font = "22px monospace";
-                ctx.fillText(comp.type, scr.x-12, scr.y-8);
+                let s = worldToScreen(comp.x, comp.y);
+                ctx.font = "26px monospace"; ctx.fillStyle = "#ff88bb"; ctx.fillText("🐙", s.x-10, s.y-5);
             }
-            // FISH (player)
-            let fishScr = worldToScreen(fish.x, fish.y);
+            let fs = worldToScreen(fish.x, fish.y);
             ctx.shadowBlur = 12;
-            ctx.beginPath();
-            ctx.ellipse(fishScr.x, fishScr.y, fish.size/1.8, fish.size/1.2, 0, 0, Math.PI*2);
-            ctx.fillStyle = fish.color;
-            ctx.fill();
-            ctx.fillStyle = "#000";
-            ctx.beginPath();
-            ctx.arc(fishScr.x-4, fishScr.y-3, 3, 0, Math.PI*2);
-            ctx.fill();
-            ctx.fillStyle = "white";
-            ctx.beginPath();
-            ctx.arc(fishScr.x-5, fishScr.y-4, 1.2, 0, Math.PI*2);
-            ctx.fill();
-            // particles
+            ctx.beginPath(); ctx.ellipse(fs.x, fs.y, fish.size/1.8, fish.size/1.2, 0, 0, Math.PI*2);
+            ctx.fillStyle = fish.color; ctx.fill();
+            ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(fs.x-4, fs.y-3, 3, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = "white"; ctx.beginPath(); ctx.arc(fs.x-5, fs.y-4, 1.2, 0, Math.PI*2); ctx.fill();
             for(let p of particles) {
-                let scr = worldToScreen(p.x, p.y);
+                let s = worldToScreen(p.x, p.y);
                 ctx.fillStyle = `rgba(0,255,200,${p.life*0.8})`;
-                ctx.beginPath(
+                ctx.beginPath(); ctx.arc(s.x, s.y, 3, 0, Math.PI*2); ctx.fill();
+            }
+            ctx.shadowBlur = 0;
+        }
+        
+        function handleTap(e) {
+            e.preventDefault();
+            let rect = canvas.getBoundingClientRect();
+            let sx, sy;
+            if(e.touches) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }
+            else { sx = e.clientX; sy = e.clientY; }
+            let wx = camera.x + sx, wy = camera.y + sy;
+            let killed = false;
+            for(let i=0;i<enemies.length;i++) {
+                let scr = worldToScreen(enemies[i].x, enemies[i].y);
+                if(Math.hypot(scr.x - sx, scr.y - sy) < 30) {
+                    enemies.splice(i,1); fish.kills++; fish.coins += 2;
+                    updateUI(); showToast("⚡ TAP KILL!"); killed = true; break;
+                }
+            }
+            if(!killed) { targetX = wx; targetY = wy; }
+        }
+        
+        function gameLoop(now) {
+            let delta = Math.min(0.033, (now - lastFrame) / 1000);
+            if(delta > 0.001) { updateGame(delta); updateCamera(); draw(); updateUI(); }
+            lastFrame = now;
+            requestAnimationFrame(gameLoop);
+        }
+        
+        canvas.addEventListener('touchstart', handleTap);
+        canvas.addEventListener('mousedown', handleTap);
+        window.addEventListener('resize', ()=>{ resize(); updateCamera(); });
+        document.getElementById('shopBtn').addEventListener('click', openShop);
+        
+        resize();
+        spawnCoin(40);
+        for(let i=0;i<4;i++) spawnEnemy();
+        fish.coins = 5; updateUI();
+        lastFrame = performance.now();
+        gameLoop(lastFrame);
+        setInterval(()=>{ if(fish.health<20) showToast("💤 Fish is lonely! Tap to play!"); }, 45000);
+    })();
+</script>
+</body>
+</html>
