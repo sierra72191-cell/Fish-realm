@@ -2,403 +2,210 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>OCEAN REALMS · LIVING WORLD</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-        body {
-            background: #010a1a;
-            overflow: hidden;
-            font-family: 'Courier New', monospace;
-            touch-action: none;
-        }
-        canvas {
-            display: block;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            cursor: crosshair;
-        }
-        .stats-panel {
-            position: fixed;
-            top: 12px;
-            left: 12px;
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(8px);
-            border-radius: 20px;
-            padding: 8px 14px;
-            color: #7fffd4;
-            font-size: 12px;
-            font-weight: bold;
-            z-index: 10;
-            border-left: 3px solid #0ff;
+        body { margin: 0; overflow: hidden; background: #000b1a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        canvas { display: block; }
+        #ui-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none;
-            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
-        .stats-panel div { margin: 3px 0; }
-        .shop-panel {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(12px);
-            border-radius: 40px;
-            padding: 12px 20px;
-            color: gold;
-            z-index: 20;
-            border: 1px solid gold;
+        #stats {
+            padding: 20px;
+            color: #00fbff;
+            text-shadow: 0 0 10px rgba(0,251,255,0.5);
+        }
+        #controls {
+            padding: 20px;
+            display: flex;
+            gap: 10px;
+            pointer-events: auto;
+            background: rgba(0, 21, 41, 0.8);
+            border-top: 1px solid #00fbff;
+        }
+        .btn {
+            background: #003366;
+            color: white;
+            border: 1px solid #00fbff;
+            padding: 15px;
+            border-radius: 10px;
             font-weight: bold;
-            cursor: pointer;
-            font-family: monospace;
-        }
-        .shop-panel:active { transform: scale(0.96); background: gold; color: black; }
-        .event-toast {
-            position: fixed;
-            top: 30%;
-            left: 50%;
-            transform: translate(-50%,-50%);
-            background: black;
-            backdrop-filter: blur(16px);
-            color: cyan;
-            padding: 10px 20px;
-            border-radius: 40px;
-            font-size: 16px;
-            font-weight: bold;
-            z-index: 100;
-            border: 1px solid cyan;
-            pointer-events: none;
-            animation: fadeUp 2s ease-out forwards;
-            white-space: nowrap;
-        }
-        @keyframes fadeUp {
-            0% { opacity: 1; transform: translate(-50%,-50%) scale(0.9); }
-            100% { opacity: 0; transform: translate(-50%,-80%) scale(1.1); }
-        }
-        .instruction {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            background: rgba(0,0,0,0.5);
-            border-radius: 20px;
-            padding: 5px 10px;
-            font-size: 10px;
-            color: #aaa;
-            pointer-events: none;
+            flex: 1;
+            text-align: center;
+            active { background: #00fbff; color: #000; }
         }
     </style>
 </head>
 <body>
-<canvas id="gameCanvas"></canvas>
-<div class="stats-panel" id="statsPanel">
-    <div>🐟 SIZE: <span id="sizeVal">BABY</span></div>
-    <div>💰 COINS: <span id="coinVal">0</span></div>
-    <div>⚔️ KILLS: <span id="killVal">0</span></div>
-    <div>🐙 COMPANIONS: <span id="compVal">0</span></div>
-    <div>❤️ HEALTH: <span id="healthVal">100</span>%</div>
-    <div>⏱️ AGE: <span id="ageVal">0</span>s</div>
-</div>
-<div class="shop-panel" id="shopBtn">🛒 SHOP (100💰)</div>
-<div class="instruction">👇 TAP to move | 👆 TAP enemy to KILL</div>
 
-<script>
-    (function(){
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="ui-layer">
+        <div id="stats">
+            <div>HEALTH: <span id="hp">100%</span></div>
+            <div>COINS: <span id="coinCount">0</span></div>
+            <div>CREATURES: <span id="petCount">0</span></div>
+        </div>
+        
+        <div id="controls">
+            <div class="btn" onclick="spawnPet('Protector', 5)">Summon Protector (5 coins)</div>
+            <div class="btn" onclick="spawnPet('Scout', 10)">Summon Scout (10 coins)</div>
+        </div>
+    </div>
+
+    <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        let width, height;
-        const WORLD_SIZE = 4000;
-        let camera = { x: 0, y: 0 };
-        
-        let fish = {
-            x: WORLD_SIZE/2, y: WORLD_SIZE/2,
-            vx: 0, vy: 0,
-            size: 12,
-            maxSize: 48,
-            age: 0,
-            health: 100,
-            maxHealth: 100,
-            color: "#7bc5ae",
-            coins: 5,
-            kills: 0,
-            companions: []
-        };
-        
-        let coins = [];
-        let enemies = [];
-        let particles = [];
-        let targetX = null, targetY = null;
-        let wanderAngle = Math.random() * Math.PI * 2;
-        let lastSpawn = 0, lastEvent = 0, lastFrame = 0;
-        let ageCounter = 0;
-        
+        let coins = 0;
+        let pets = [];
+        let items = [];
+
         function resize() {
-            width = window.innerWidth;
-            height = window.innerHeight;
-            canvas.width = width;
-            canvas.height = height;
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
         }
-        
-        function updateCamera() {
-            camera.x = fish.x - width/2;
-            camera.y = fish.y - height/2;
-            camera.x = Math.min(Math.max(camera.x, 0), WORLD_SIZE - width);
-            camera.y = Math.min(Math.max(camera.y, 0), WORLD_SIZE - height);
-        }
-        
-        function worldToScreen(wx, wy) {
-            return { x: wx - camera.x, y: wy - camera.y };
-        }
-        
-        function spawnCoin(count=1) {
-            for(let i=0;i<count;i++) {
-                coins.push({ x: Math.random() * WORLD_SIZE, y: Math.random() * WORLD_SIZE, value: 1, radius: 8 });
+        window.addEventListener('resize', resize);
+        resize();
+
+        const fish = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            targetX: canvas.width / 2,
+            targetY: canvas.height / 2,
+            angle: 0,
+            size: 15,
+            wiggle: 0,
+            idleTimer: 0
+        };
+
+        // Spawn a coin every 3 seconds
+        setInterval(() => {
+            items.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: 5
+            });
+        }, 3000);
+
+        function spawnPet(type, cost) {
+            if (coins >= cost) {
+                coins -= cost;
+                document.getElementById('coinCount').innerText = coins;
+                pets.push({ x: fish.x, y: fish.y, type: type, offset: pets.length + 1 });
+                document.getElementById('petCount').innerText = pets.length;
             }
         }
-        
-        function spawnEnemy(nearFish=false) {
-            let x, y;
-            if(nearFish && Math.random()<0.6) {
-                let angle = Math.random() * Math.PI * 2;
-                let dist = 150 + Math.random() * 200;
-                x = fish.x + Math.cos(angle)*dist;
-                y = fish.y + Math.sin(angle)*dist;
-            } else {
-                x = Math.random() * WORLD_SIZE;
-                y = Math.random() * WORLD_SIZE;
+
+        function setTarget(e) {
+            const clientX = e.clientX || (e.touches ? e.touches[0].clientX : fish.x);
+            const clientY = e.clientY || (e.touches ? e.touches[0].clientY : fish.y);
+            fish.targetX = clientX;
+            fish.targetY = clientY;
+            fish.idleTimer = 0; 
+        }
+
+        window.addEventListener('touchstart', (e) => { setTarget(e); e.preventDefault(); }, {passive: false});
+        window.addEventListener('mousedown', setTarget);
+
+        function update() {
+            // Autonomous Drift
+            fish.idleTimer++;
+            if (fish.idleTimer > 100) {
+                fish.targetX += Math.sin(Date.now() / 1000) * 2;
+                fish.targetY += Math.cos(Date.now() / 1000) * 2;
             }
-            x = Math.min(Math.max(x,20), WORLD_SIZE-20);
-            y = Math.min(Math.max(y,20), WORLD_SIZE-20);
-            enemies.push({
-                x, y, radius: 14, health: 12, damage: 4, speed: 28,
-                vx: (Math.random()-0.5)*40, vy: (Math.random()-0.5)*40
+
+            // Move Fish
+            const dx = fish.targetX - fish.x;
+            const dy = fish.targetY - fish.y;
+            fish.angle = Math.atan2(dy, dx);
+            fish.x += dx * 0.03;
+            fish.y += dy * 0.03;
+            fish.wiggle = Math.sin(Date.now() / 150) * 5;
+
+            // Follower Logic
+            pets.forEach((pet, i) => {
+                const target = i === 0 ? fish : pets[i-1];
+                pet.x += (target.x - pet.x) * 0.05;
+                pet.y += (target.y - pet.y) * 0.05;
+            });
+
+            // Coin Collection
+            items = items.filter(item => {
+                const dist = Math.hypot(fish.x - item.x, fish.y - item.y);
+                if (dist < 30) {
+                    coins++;
+                    document.getElementById('coinCount').innerText = coins;
+                    return false;
+                }
+                return true;
             });
         }
-        
-        function showToast(msg) {
-            let div = document.createElement('div');
-            div.className = 'event-toast';
-            div.innerText = msg;
-            document.body.appendChild(div);
-            setTimeout(()=>div.remove(), 2000);
+
+        function drawFish(x, y, angle, size, color, isPlayer) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+
+            // Tail
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(-size, 0);
+            ctx.lineTo(-size - 15, fish.wiggle);
+            ctx.lineTo(-size - 15, -fish.wiggle);
+            ctx.fill();
+
+            // Body
+            ctx.beginPath();
+            ctx.ellipse(0, 0, size + 5, size, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Eye
+            if(isPlayer) {
+                ctx.fillStyle = "white";
+                ctx.beginPath();
+                ctx.arc(size / 2, -size / 3, 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = "black";
+                ctx.beginPath();
+                ctx.arc(size / 2 + 1, -size / 3, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
         }
-        
-        function randomEvent() {
-            let events = [
-                () => { spawnCoin(8); showToast("🌊 MIGRATION WAVE +8 COINS"); },
-                () => { fish.health = Math.min(fish.maxHealth, fish.health+15); showToast("🐋 WHALE SONG +15 HEALTH"); },
-                () => { for(let i=0;i<3;i++) spawnEnemy(true); showToast("💀 SHARK PARTY! 3 enemies"); },
-                () => { fish.coins += 15; showToast("✨ GOLDEN TIDE +15 COINS"); },
-                () => { fish.health = Math.max(1, fish.health-8); showToast("🌀 MAELSTROM -8 HEALTH"); }
-            ];
-            let e = events[Math.floor(Math.random()*events.length)];
-            e();
-            for(let i=0;i<15;i++) particles.push({ x: fish.x, y: fish.y, life: 0.8, vx: (Math.random()-0.5)*60, vy: (Math.random()-0.5)*60 });
+
+        function animate() {
+            ctx.fillStyle = '#000b1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Coins
+            items.forEach(item => {
+                ctx.fillStyle = '#ffd700';
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#ffd700';
+                ctx.beginPath();
+                ctx.arc(item.x, item.y, item.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Draw Pets
+            pets.forEach(pet => {
+                drawFish(pet.x, pet.y, fish.angle, 8, pet.type === 'Protector' ? '#ff4d4d' : '#4dff88', false);
+            });
+
+            // Draw Player
+            drawFish(fish.x, fish.y, fish.angle, 15, '#00fbff', true);
+
+            update();
+            requestAnimationFrame(animate);
         }
-        
-        function updateUI() {
-            let sizeLabel = fish.size > 35 ? "LEVIATHAN" : fish.size > 25 ? "ADULT" : fish.size > 18 ? "GROWING" : "BABY";
-            document.getElementById('sizeVal').innerText = sizeLabel;
-            document.getElementById('coinVal').innerText = Math.floor(fish.coins);
-            document.getElementById('killVal').innerText = fish.kills;
-            document.getElementById('compVal').innerText = fish.companions.length;
-            document.getElementById('healthVal').innerText = Math.max(0, Math.floor(fish.health));
-            document.getElementById('ageVal').innerText = Math.floor(ageCounter);
-            if(fish.coins >= 50 && fish.color === "#7bc5ae") { fish.color = "#ffaa66"; showToast("🌈 FISH CHANGED COLOR! (50 coins)"); }
-            if(fish.coins >= 150 && fish.color === "#ffaa66") { fish.color = "#ff66cc"; showToast("✨ LEGENDARY COLOR!"); }
-        }
-        
-        function openShop() {
-            if(fish.coins >= 100) {
-                fish.coins -= 100;
-                fish.companions.push({ type: "🐙", x: fish.x, y: fish.y });
-                updateUI();
-                showToast("🐙 OCTO-GUARD joins! Fights enemies");
-            } else { showToast("Need 100 coins!"); }
-        }
-        
-        function updateGame(delta) {
-            if(delta > 0.05) delta = 0.05;
-            ageCounter += delta;
-            if(fish.size < fish.maxSize) fish.size = Math.min(fish.maxSize, fish.size + 0.35 * delta);
-            if(targetX === null && Math.random() < 0.02 * delta) fish.health -= 0.4 * delta;
-            if(targetX !== null) fish.health = Math.min(fish.maxHealth, fish.health + 3 * delta);
-            if(fish.health <= 0) fish.health = 15;
-            
-            let nearestCoin = null, minDist = Infinity;
-            for(let c of coins) {
-                let d = Math.hypot(c.x - fish.x, c.y - fish.y);
-                if(d < minDist && d < 170) { minDist = d; nearestCoin = c; }
-            }
-            if(nearestCoin) {
-                let ang = Math.atan2(nearestCoin.y - fish.y, nearestCoin.x - fish.x);
-                fish.vx += Math.cos(ang) * 90 * delta;
-                fish.vy += Math.sin(ang) * 90 * delta;
-            } else {
-                wanderAngle += (Math.random()-0.5) * 2.5 * delta;
-                fish.vx += Math.cos(wanderAngle) * 45 * delta;
-                fish.vy += Math.sin(wanderAngle) * 45 * delta;
-            }
-            if(targetX !== null) {
-                let dx = targetX - fish.x, dy = targetY - fish.y;
-                if(Math.hypot(dx,dy) < 15) { targetX = null; targetY = null; }
-                else {
-                    let ang = Math.atan2(dy,dx);
-                    fish.vx += Math.cos(ang) * 380 * delta;
-                    fish.vy += Math.sin(ang) * 380 * delta;
-                }
-            }
-            fish.vx *= (1 - 4*delta);
-            fish.vy *= (1 - 4*delta);
-            let spd = Math.hypot(fish.vx, fish.vy);
-            if(spd > 280) { fish.vx = (fish.vx/spd)*280; fish.vy = (fish.vy/spd)*280; }
-            fish.x += fish.vx * delta;
-            fish.y += fish.vy * delta;
-            fish.x = Math.min(Math.max(fish.x, 15), WORLD_SIZE-15);
-            fish.y = Math.min(Math.max(fish.y, 15), WORLD_SIZE-15);
-            
-            for(let i=0;i<coins.length;i++) {
-                let c = coins[i];
-                if(Math.hypot(fish.x - c.x, fish.y - c.y) < fish.size/2 + 8) {
-                    fish.coins += c.value;
-                    coins.splice(i,1); i--;
-                    updateUI();
-                    for(let p=0;p<5;p++) particles.push({ x: c.x, y: c.y, life: 0.5, vx: (Math.random()-0.5)*40, vy: (Math.random()-0.5)*40 });
-                }
-            }
-            for(let i=0;i<enemies.length;i++) {
-                let e = enemies[i];
-                if(Math.hypot(e.x - fish.x, e.y - fish.y) < fish.size/2 + e.radius) {
-                    e.health -= 8 + (fish.size/8);
-                    if(e.health <= 0) {
-                        fish.kills++; fish.coins += 3;
-                        enemies.splice(i,1); i--;
-                        updateUI(); showToast("💀 ENEMY DEFEATED +3 coins");
-                        continue;
-                    }
-                    fish.health -= e.damage * 0.7;
-                    let ang = Math.atan2(e.y - fish.y, e.x - fish.x);
-                    fish.vx += Math.cos(ang)*50; fish.vy += Math.sin(ang)*50;
-                }
-                let angTo = Math.atan2(fish.y - e.y, fish.x - e.x);
-                e.vx += Math.cos(angTo) * 35 * delta;
-                e.vy += Math.sin(angTo) * 35 * delta;
-                e.x += e.vx * delta; e.y += e.vy * delta;
-                e.x = Math.min(Math.max(e.x,10), WORLD_SIZE-10);
-                e.y = Math.min(Math.max(e.y,10), WORLD_SIZE-10);
-                e.vx *= 0.98; e.vy *= 0.98;
-            }
-            for(let comp of fish.companions) {
-                for(let i=0;i<enemies.length;i++) {
-                    let e = enemies[i];
-                    if(Math.hypot(e.x - comp.x, e.y - comp.y) < 45) {
-                        e.health -= 7;
-                        if(e.health <= 0) {
-                            fish.kills++; fish.coins += 3;
-                            enemies.splice(i,1); i--;
-                            updateUI();
-                        }
-                    }
-                }
-                let idx = fish.companions.indexOf(comp);
-                comp.x = fish.x + Math.sin(Date.now()*0.004 + idx*2) * 38;
-                comp.y = fish.y + Math.cos(Date.now()*0.0045 + idx*2) * 38;
-            }
-            lastSpawn += delta;
-            if(lastSpawn > 3) { lastSpawn = 0; spawnCoin(2); if(enemies.length < 5) spawnEnemy(true); }
-            lastEvent += delta;
-            if(lastEvent > 26) { lastEvent = 0; randomEvent(); }
-            for(let i=0;i<particles.length;i++) {
-                particles[i].life -= delta;
-                particles[i].x += particles[i].vx * delta;
-                particles[i].y += particles[i].vy * delta;
-                if(particles[i].life <= 0) particles.splice(i,1), i--;
-            }
-        }
-        
-        function draw() {
-            ctx.clearRect(0,0,width,height);
-            let grad = ctx.createLinearGradient(0,0,0,height);
-            grad.addColorStop(0,"#021a2b"); grad.addColorStop(1,"#002133");
-            ctx.fillStyle = grad; ctx.fillRect(0,0,width,height);
-            for(let c of coins) {
-                let s = worldToScreen(c.x, c.y);
-                if(s.x > -50 && s.x < width+50) {
-                    ctx.beginPath(); ctx.arc(s.x, s.y, 8, 0, Math.PI*2);
-                    ctx.fillStyle = "#ffcc44"; ctx.shadowBlur = 12; ctx.fill();
-                    ctx.fillStyle = "#aa8822"; ctx.font = "bold 14px monospace"; ctx.fillText("💰", s.x-6, s.y+5);
-                }
-            }
-            for(let e of enemies) {
-                let s = worldToScreen(e.x, e.y);
-                if(s.x > -50 && s.x < width+50) {
-                    ctx.beginPath(); ctx.arc(s.x, s.y, e.radius, 0, Math.PI*2);
-                    ctx.fillStyle = "#aa3355"; ctx.fill();
-                    ctx.fillStyle = "white"; ctx.fillText("👾", s.x-8, s.y+6);
-                }
-            }
-            for(let comp of fish.companions) {
-                let s = worldToScreen(comp.x, comp.y);
-                ctx.font = "26px monospace"; ctx.fillStyle = "#ff88bb"; ctx.fillText("🐙", s.x-10, s.y-5);
-            }
-            let fs = worldToScreen(fish.x, fish.y);
-            ctx.shadowBlur = 12;
-            ctx.beginPath(); ctx.ellipse(fs.x, fs.y, fish.size/1.8, fish.size/1.2, 0, 0, Math.PI*2);
-            ctx.fillStyle = fish.color; ctx.fill();
-            ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(fs.x-4, fs.y-3, 3, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = "white"; ctx.beginPath(); ctx.arc(fs.x-5, fs.y-4, 1.2, 0, Math.PI*2); ctx.fill();
-            for(let p of particles) {
-                let s = worldToScreen(p.x, p.y);
-                ctx.fillStyle = `rgba(0,255,200,${p.life*0.8})`;
-                ctx.beginPath(); ctx.arc(s.x, s.y, 3, 0, Math.PI*2); ctx.fill();
-            }
-            ctx.shadowBlur = 0;
-        }
-        
-        function handleTap(e) {
-            e.preventDefault();
-            let rect = canvas.getBoundingClientRect();
-            let sx, sy;
-            if(e.touches) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }
-            else { sx = e.clientX; sy = e.clientY; }
-            let wx = camera.x + sx, wy = camera.y + sy;
-            let killed = false;
-            for(let i=0;i<enemies.length;i++) {
-                let scr = worldToScreen(enemies[i].x, enemies[i].y);
-                if(Math.hypot(scr.x - sx, scr.y - sy) < 30) {
-                    enemies.splice(i,1); fish.kills++; fish.coins += 2;
-                    updateUI(); showToast("⚡ TAP KILL!"); killed = true; break;
-                }
-            }
-            if(!killed) { targetX = wx; targetY = wy; }
-        }
-        
-        function gameLoop(now) {
-            let delta = Math.min(0.033, (now - lastFrame) / 1000);
-            if(delta > 0.001) { updateGame(delta); updateCamera(); draw(); updateUI(); }
-            lastFrame = now;
-            requestAnimationFrame(gameLoop);
-        }
-        
-        canvas.addEventListener('touchstart', handleTap);
-        canvas.addEventListener('mousedown', handleTap);
-        window.addEventListener('resize', ()=>{ resize(); updateCamera(); });
-        document.getElementById('shopBtn').addEventListener('click', openShop);
-        
-        resize();
-        spawnCoin(40);
-        for(let i=0;i<4;i++) spawnEnemy();
-        fish.coins = 5; updateUI();
-        lastFrame = performance.now();
-        gameLoop(lastFrame);
-        setInterval(()=>{ if(fish.health<20) showToast("💤 Fish is lonely! Tap to play!"); }, 45000);
-    })();
-</script>
+
+        animate();
+    </script>
 </body>
 </html>
