@@ -1,211 +1,110 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OCEAN REALMS · LIVING WORLD</title>
-    <style>
-        body { margin: 0; overflow: hidden; background: #000b1a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        canvas { display: block; }
-        #ui-layer {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-        #stats {
-            padding: 20px;
-            color: #00fbff;
-            text-shadow: 0 0 10px rgba(0,251,255,0.5);
-        }
-        #controls {
-            padding: 20px;
-            display: flex;
-            gap: 10px;
-            pointer-events: auto;
-            background: rgba(0, 21, 41, 0.8);
-            border-top: 1px solid #00fbff;
-        }
-        .btn {
-            background: #003366;
-            color: white;
-            border: 1px solid #00fbff;
-            padding: 15px;
-            border-radius: 10px;
-            font-weight: bold;
-            flex: 1;
-            text-align: center;
-            active { background: #00fbff; color: #000; }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude Sandbox — Day 1</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0a0a0f;
+      color: #e8e8f0;
+      font-family: 'Courier New', Courier, monospace;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      text-align: center;
+    }
+    .card {
+      background: #111118;
+      border: 1px solid #2a2a40;
+      border-radius: 16px;
+      padding: 40px 28px;
+      max-width: 480px;
+      width: 100%;
+      box-shadow: 0 0 40px rgba(100, 80, 255, 0.08);
+    }
+    .badge {
+      display: inline-block;
+      background: #1a1a2e;
+      border: 1px solid #3a3a60;
+      border-radius: 999px;
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      color: #8080c0;
+      padding: 4px 14px;
+      margin-bottom: 28px;
+      text-transform: uppercase;
+    }
+    h1 {
+      font-size: clamp(2.8rem, 12vw, 4rem);
+      font-weight: 900;
+      background: linear-gradient(135deg, #a78bfa 0%, #60a5fa 50%, #34d399 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.1;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: #5555a0;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 32px;
+    }
+    .divider {
+      border: none;
+      border-top: 1px solid #1e1e38;
+      margin: 24px 0;
+    }
+    .lines {
+      list-style: none;
+      font-size: 15px;
+      line-height: 2.4;
+      color: #9090c8;
+    }
+    .lines li::before { content: '→ '; color: #4444a0; }
+    .rocket { font-size: 2.2rem; margin: 24px 0 8px; display: block; }
+    .footer {
+      margin-top: 32px;
+      font-size: 11px;
+      color: #3a3a60;
+      letter-spacing: 0.08em;
+      line-height: 2;
+    }
+    .commit {
+      display: inline-block;
+      margin-top: 10px;
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 6px;
+      padding: 4px 12px;
+      font-size: 11px;
+      color: #58a6ff;
+    }
+  </style>
 </head>
 <body>
-
-    <canvas id="gameCanvas"></canvas>
-    
-    <div id="ui-layer">
-        <div id="stats">
-            <div>HEALTH: <span id="hp">100%</span></div>
-            <div>COINS: <span id="coinCount">0</span></div>
-            <div>CREATURES: <span id="petCount">0</span></div>
-        </div>
-        
-        <div id="controls">
-            <div class="btn" onclick="spawnPet('Protector', 5)">Summon Protector (5 coins)</div>
-            <div class="btn" onclick="spawnPet('Scout', 10)">Summon Scout (10 coins)</div>
-        </div>
+  <div class="card">
+    <div class="badge">Claude Sandbox</div>
+    <h1>DAY 1</h1>
+    <p class="subtitle">Building in the wild</p>
+    <hr class="divider">
+    <ul class="lines">
+      <li>The journey begins</li>
+      <li>Building in the open</li>
+      <li>Forward we gooo!</li>
+    </ul>
+    <span class="rocket">🚀</span>
+    <hr class="divider">
+    <div class="footer">
+      Powered by Claude Sonnet 4.6<br>
+      sierra72191-cell · Fish-realm
+      <div class="commit">#COMMIT 003 — 2026-06-15</div>
     </div>
-
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        let coins = 0;
-        let pets = [];
-        let items = [];
-
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', resize);
-        resize();
-
-        const fish = {
-            x: canvas.width / 2,
-            y: canvas.height / 2,
-            targetX: canvas.width / 2,
-            targetY: canvas.height / 2,
-            angle: 0,
-            size: 15,
-            wiggle: 0,
-            idleTimer: 0
-        };
-
-        // Spawn a coin every 3 seconds
-        setInterval(() => {
-            items.push({
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
-                size: 5
-            });
-        }, 3000);
-
-        function spawnPet(type, cost) {
-            if (coins >= cost) {
-                coins -= cost;
-                document.getElementById('coinCount').innerText = coins;
-                pets.push({ x: fish.x, y: fish.y, type: type, offset: pets.length + 1 });
-                document.getElementById('petCount').innerText = pets.length;
-            }
-        }
-
-        function setTarget(e) {
-            const clientX = e.clientX || (e.touches ? e.touches[0].clientX : fish.x);
-            const clientY = e.clientY || (e.touches ? e.touches[0].clientY : fish.y);
-            fish.targetX = clientX;
-            fish.targetY = clientY;
-            fish.idleTimer = 0; 
-        }
-
-        window.addEventListener('touchstart', (e) => { setTarget(e); e.preventDefault(); }, {passive: false});
-        window.addEventListener('mousedown', setTarget);
-
-        function update() {
-            // Autonomous Drift
-            fish.idleTimer++;
-            if (fish.idleTimer > 100) {
-                fish.targetX += Math.sin(Date.now() / 1000) * 2;
-                fish.targetY += Math.cos(Date.now() / 1000) * 2;
-            }
-
-            // Move Fish
-            const dx = fish.targetX - fish.x;
-            const dy = fish.targetY - fish.y;
-            fish.angle = Math.atan2(dy, dx);
-            fish.x += dx * 0.03;
-            fish.y += dy * 0.03;
-            fish.wiggle = Math.sin(Date.now() / 150) * 5;
-
-            // Follower Logic
-            pets.forEach((pet, i) => {
-                const target = i === 0 ? fish : pets[i-1];
-                pet.x += (target.x - pet.x) * 0.05;
-                pet.y += (target.y - pet.y) * 0.05;
-            });
-
-            // Coin Collection
-            items = items.filter(item => {
-                const dist = Math.hypot(fish.x - item.x, fish.y - item.y);
-                if (dist < 30) {
-                    coins++;
-                    document.getElementById('coinCount').innerText = coins;
-                    return false;
-                }
-                return true;
-            });
-        }
-
-        function drawFish(x, y, angle, size, color, isPlayer) {
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.rotate(angle);
-
-            // Tail
-            ctx.fillStyle = color;
-            ctx.beginPath();
-            ctx.moveTo(-size, 0);
-            ctx.lineTo(-size - 15, fish.wiggle);
-            ctx.lineTo(-size - 15, -fish.wiggle);
-            ctx.fill();
-
-            // Body
-            ctx.beginPath();
-            ctx.ellipse(0, 0, size + 5, size, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Eye
-            if(isPlayer) {
-                ctx.fillStyle = "white";
-                ctx.beginPath();
-                ctx.arc(size / 2, -size / 3, 4, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.fillStyle = "black";
-                ctx.beginPath();
-                ctx.arc(size / 2 + 1, -size / 3, 2, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            ctx.restore();
-        }
-
-        function animate() {
-            ctx.fillStyle = '#000b1a';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Draw Coins
-            items.forEach(item => {
-                ctx.fillStyle = '#ffd700';
-                ctx.shadowBlur = 10;
-                ctx.shadowColor = '#ffd700';
-                ctx.beginPath();
-                ctx.arc(item.x, item.y, item.size, 0, Math.PI * 2);
-                ctx.fill();
-            });
-
-            // Draw Pets
-            pets.forEach(pet => {
-                drawFish(pet.x, pet.y, fish.angle, 8, pet.type === 'Protector' ? '#ff4d4d' : '#4dff88', false);
-            });
-
-            // Draw Player
-            drawFish(fish.x, fish.y, fish.angle, 15, '#00fbff', true);
-
-            update();
-            requestAnimationFrame(animate);
-        }
-
-        animate();
-    </script>
+  </div>
 </body>
 </html>
