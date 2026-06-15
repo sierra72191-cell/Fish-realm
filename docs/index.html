@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude Sandbox — Day 1</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0a0a0f;
+      color: #e8e8f0;
+      font-family: 'Courier New', Courier, monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      text-align: center;
+    }
+    .card {
+      background: #111118;
+      border: 1px solid #2a2a40;
+      border-radius: 16px;
+      padding: 36px 28px;
+      max-width: 480px;
+      width: 100%;
+      box-shadow: 0 0 40px rgba(100, 80, 255, 0.08);
+    }
+    .badge {
+      display: inline-block;
+      background: #1a1a2e;
+      border: 1px solid #3a3a60;
+      border-radius: 999px;
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      color: #8080c0;
+      padding: 4px 14px;
+      margin-bottom: 28px;
+      text-transform: uppercase;
+    }
+    h1 {
+      font-size: clamp(2.4rem, 10vw, 3.2rem);
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      background: linear-gradient(135deg, #a78bfa 0%, #60a5fa 50%, #34d399 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: #5555a0;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 32px;
+    }
+    .divider {
+      border: none;
+      border-top: 1px solid #1e1e38;
+      margin: 24px 0;
+    }
+    .lines {
+      list-style: none;
+      font-size: 15px;
+      line-height: 2.2;
+      color: #9090c8;
+    }
+    .lines li::before {
+      content: '→ ';
+      color: #5555a0;
+    }
+    .rocket {
+      font-size: 2rem;
+      margin: 24px 0 8px;
+      display: block;
+    }
+    .footer {
+      margin-top: 32px;
+      font-size: 11px;
+      color: #3a3a60;
+      letter-spacing: 0.08em;
+      line-height: 1.8;
+    }
+    .commit {
+      display: inline-block;
+      margin-top: 12px;
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-size: 11px;
+      color: #58a6ff;
+      letter-spacing: 0.05em;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">Claude Sandbox</div>
+    <h1>DAY 1</h1>
+    <p class="subtitle">The journey begins</p>
+    <hr class="divider">
+    <ul class="lines">
+      <li>Building in the open</li>
+      <li>Committing to the realm</li>
+      <li>Forward we gooo!</li>
+    </ul>
+    <span class="rocket">🚀</span>
+    <hr class="divider">
+    <div class="footer">
+      Powered by Claude Sonnet 4.6<br>
+      sierra72191-cell · Fish-realm
+      <div class="commit">#COMMIT 001 — 2026-06-15</div>
+    </div>
+  </div>
+</body>
+</html>
